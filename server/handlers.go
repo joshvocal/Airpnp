@@ -34,6 +34,7 @@ func DeleteMarker(res http.ResponseWriter, req *http.Request) {
 	err := DeleteOneMarker(req)
 
 	if err != nil {
+		fmt.Println(err)
 		http.Error(res, http.StatusText(400), http.StatusBadRequest)
 	}
 }
