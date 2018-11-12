@@ -1,18 +1,21 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 )
 
 type Marker struct {
-	Lat float64  `json:"author"`
-	Lng  float64 `json:"price"`
+	Id int `json"id"`
+	Lat float64  `json:"lat"`
+	Lng  float64 `json:"lng"`
 }
 
 func GetMarkers() ([]Marker, error) {
 	rows, err := DB.Query("SELECT * FROM marker")
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -20,8 +23,9 @@ func GetMarkers() ([]Marker, error) {
 	for rows.Next() {
 		marker := Marker{}
 
-		err := rows.Scan(&marker.Lat, &marker.Lng)
+		err := rows.Scan(&marker.Id, &marker.Lat, &marker.Lng)
 		if err != nil {
+			fmt.Println(err)
 			return nil, err
 		}
 
@@ -30,6 +34,7 @@ func GetMarkers() ([]Marker, error) {
 
 	err = rows.Err()
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -47,11 +52,13 @@ func PutMarker(req *http.Request) (Marker,  error) {
 	var err error
 	lat, err := strconv.ParseFloat(latString, 64)
 	if err != nil {
+		fmt.Println(err)
 		return marker, err
 	}
 
 	lng, err := strconv.ParseFloat(lngString, 64)
 	if err != nil {
+		fmt.Println(err)
 		return marker, err
 	}
 
@@ -62,6 +69,7 @@ func PutMarker(req *http.Request) (Marker,  error) {
 	// Insert into the database
 	_, err = DB.Exec("INSERT INTO marker (lat, lng) VALUES ($1, $2)", marker.Lat, marker.Lng)
 	if err != nil {
+		fmt.Println(err)
 		return marker, err
 	}
 

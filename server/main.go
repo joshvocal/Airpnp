@@ -11,8 +11,8 @@ var port = ":3000"
 func main() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/markers", ReadAllMarkers).Methods(http.MethodGet)
-	router.HandleFunc("/marker", CreateMarker).Methods(http.MethodPut)
+	router.Path("/markers").Methods(http.MethodGet).HandlerFunc(ReadAllMarkers)
+	router.Path("/marker").Methods(http.MethodPut).HandlerFunc(CreateMarker)
 
 	fmt.Printf("Server listening on http://localhost%s\n", port)
 	http.ListenAndServe(port, router)
