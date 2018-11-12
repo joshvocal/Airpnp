@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	DB *sql.DB
+	DB  *sql.DB
 	err error
 )
 
@@ -19,6 +19,7 @@ func init() {
 	}
 
 	if err = DB.Ping(); err != nil {
+		fmt.Println("You forgot to start your local Postgres server!")
 		panic(err)
 	}
 
