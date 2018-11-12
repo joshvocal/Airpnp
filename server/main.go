@@ -13,6 +13,7 @@ func main() {
 
 	router.Path("/markers").Methods(http.MethodGet).HandlerFunc(ReadAllMarkers)
 	router.Path("/marker").Methods(http.MethodPut).HandlerFunc(CreateMarker)
+	router.Path("/marker").Methods(http.MethodDelete).HandlerFunc(DeleteMarker)
 
 	fmt.Printf("Server listening on http://localhost%s\n", port)
 	http.ListenAndServe(port, router)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -74,4 +75,20 @@ func PutMarker(req *http.Request) (Marker,  error) {
 	}
 
 	return marker, nil
+}
+
+func DeleteOneMarker(req * http.Request) error {
+	lat := req.FormValue("lat")
+	lng := req.FormValue("lng")
+
+	if lat == "" || lng == "" {
+		return errors.New("400")
+	}
+
+	_, err := DB.Exec("DELETE FROM marker WHERE lat = $1 AND lng = $2;", lat, lng)
+	if err != nil {
+		return errors.New("500. Internal Server Error")
+	}
+
+	return nil
 }

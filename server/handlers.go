@@ -29,3 +29,11 @@ func CreateMarker(res http.ResponseWriter, req *http.Request) {
 
 	json.NewEncoder(res).Encode(marker)
 }
+
+func DeleteMarker(res http.ResponseWriter, req *http.Request) {
+	err := DeleteOneMarker(req)
+
+	if err != nil {
+		http.Error(res, http.StatusText(400), http.StatusBadRequest)
+	}
+}
