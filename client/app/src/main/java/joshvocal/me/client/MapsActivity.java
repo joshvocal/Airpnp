@@ -31,6 +31,7 @@ import java.util.List;
 
 import joshvocal.me.client.api.model.Marker;
 import joshvocal.me.client.api.service.MarkerClient;
+import joshvocal.me.client.util.SharedPreferencesHelper;
 import joshvocal.me.client.util.ViewUtil;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -53,10 +54,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
+    private SharedPreferencesHelper mSharedPreferencesHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        mSharedPreferencesHelper = new SharedPreferencesHelper(this);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -78,7 +83,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
     }
 
-    private void getDeviceLocation() {
+    private void getCurrentDeviceLocation() {
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -99,16 +104,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (task.isSuccessful()) {
                     Location currentLocation = ((Location) task.getResult());
                     LatLng latLng = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-                    moveMapCamera(latLng, DEFAULT_ZOOM);
+                    animateMapCamera(latLng, DEFAULT_ZOOM);
                 }
             }
         });
 
     }
 
-    private void moveMapCamera(LatLng latLng, float zoom) {
+    private void animateMapCamera(LatLng latLng, float zoom) {
         CameraUpdate current = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
         mMap.animateCamera(current);
+    }
+
+    private void moveMapCamera(LatLng latLng, float zoom) {
+        CameraUpdate current = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
+        mMap.moveCamera(current);
     }
 
     private void putMarkerOnMap(String lat, String lng) {
@@ -214,7 +224,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        populateMapWithMarkers();
 
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
@@ -222,7 +231,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(false);
 
-        getDeviceLocation();
+        populateMapWithMarkers();
+
+        if (getDeviceLastLocation() != new LatLng(0, 0)) {
+            moveMapCamera(getDeviceLastLocation(), DEFAULT_ZOOM);
+        } else {
+            getCurrentDeviceLocation();
+        }
+    }
+
+    private LatLng getDeviceLastLocation() {
+        double lat = Double.parseDouble(mSharedPreferencesHelper.getLastLat());
+        double lng = Double.parseDouble(mSharedPreferencesHelper.getLastLng());
+        return new LatLng(lat, lng);
     }
 
     @Override
@@ -249,7 +270,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.fab_location:
-                getDeviceLocation();
+                getCurrentDeviceLocation();
                 break;
             case R.id.fab_add:
                 if (mFlag) {
@@ -271,5 +292,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             default:
                 break;
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        String latString = String.valueOf(mMap.getCameraPosition().target.latitude);
+        String lngString = String.valueOf(mMap.getCameraPosition().target.longitude);
+
+        mSharedPreferencesHelper.setLastLatPrefKey(latString);
+        mSharedPreferencesHelper.setLastLngPrefKey(lngString);
     }
 }
