@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-func ReadAll(res http.ResponseWriter, req *http.Request) {
-	markers, err := AllMarkers()
+func ReadAllMarkers(res http.ResponseWriter, req *http.Request) {
+	markers, err := GetMarkers()
 
 	switch {
 	case err == sql.ErrNoRows:
@@ -19,4 +19,15 @@ func ReadAll(res http.ResponseWriter, req *http.Request) {
 	}
 
 	json.NewEncoder(res).Encode(markers)
+}
+
+func CreateMarker(res http.ResponseWriter, req *http.Request) {
+	marker, err := PutMarker(req)
+
+	if err != nil {
+		http.Error(res, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(res).Encode(marker)
 }
