@@ -4,6 +4,7 @@ import java.util.List;
 
 import joshvocal.me.client.api.model.Marker;
 import retrofit2.Call;
+import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.PUT;
 import retrofit2.http.Query;
@@ -17,6 +18,12 @@ public interface MarkerClient {
 
     @PUT("marker")
     Call<Marker> putMarker(
+            @Query("lat") String lat,
+            @Query("lng") String lng
+    );
+
+    @DELETE("marker")
+    Call<Void> deleteMarker(
             @Query("lat") String lat,
             @Query("lng") String lng
     );

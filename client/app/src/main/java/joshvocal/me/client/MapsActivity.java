@@ -39,7 +39,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, GoogleMap.OnMarkerClickListener {
 
     private static final float DEFAULT_ZOOM = 17f;
 
@@ -111,6 +111,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    private LatLng getDeviceLastLocation() {
+        double lat = Double.parseDouble(mSharedPreferencesHelper.getLastLat());
+        double lng = Double.parseDouble(mSharedPreferencesHelper.getLastLng());
+        return new LatLng(lat, lng);
+    }
+
     private void animateMapCamera(LatLng latLng, float zoom) {
         CameraUpdate current = CameraUpdateFactory.newLatLngZoom(latLng, zoom);
         mMap.animateCamera(current);
@@ -132,7 +138,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         MarkerClient markerClient = retrofit.create(MarkerClient.class);
         Call<Marker> markerCall = markerClient.putMarker(lat, lng);
 
-        markerCall.enqueue(new PutMarkerResponseCallBack());
+        markerCall.enqueue(new PutMarkerResponseCallback());
     }
 
     private void populateMapWithMarkers() {
@@ -149,7 +155,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerCall.enqueue(new PopulateMarkerResponseCallback());
     }
 
-    private class PutMarkerResponseCallBack implements Callback<Marker> {
+    private class PutMarkerResponseCallback implements Callback<Marker> {
 
         @Override
         public void onResponse(Call<Marker> call, Response<Marker> response) {
@@ -160,6 +166,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         @Override
         public void onFailure(Call<Marker> call, Throwable t) {
+            Toast.makeText(MapsActivity.this, "Fail", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class DeleteMarkerResponseCallback implements Callback<Void> {
+
+        @Override
+        public void onResponse(Call<Void> call, Response<Void> response) {
+            if (response.isSuccessful()) {
+                Toast.makeText(MapsActivity.this, "Deleted marker", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        @Override
+        public void onFailure(Call<Void> call, Throwable t) {
             Toast.makeText(MapsActivity.this, "Fail", Toast.LENGTH_SHORT).show();
         }
     }
@@ -208,6 +229,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setOnMarkerClickListener(this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED &&
@@ -224,7 +246,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
         mMap.getUiSettings().setCompassEnabled(false);
@@ -240,10 +261,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private LatLng getDeviceLastLocation() {
-        double lat = Double.parseDouble(mSharedPreferencesHelper.getLastLat());
-        double lng = Double.parseDouble(mSharedPreferencesHelper.getLastLng());
-        return new LatLng(lat, lng);
+    @Override
+    public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
+
+        final Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl(MarkerClient.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create());
+
+        Retrofit retrofit = builder.build();
+
+        MarkerClient markerClient = retrofit.create(MarkerClient.class);
+        Call<Void> markerCall = markerClient.deleteMarker(
+                String.valueOf(marker.getPosition().latitude),
+                String.valueOf(marker.getPosition().longitude));
+
+        markerCall.enqueue(new DeleteMarkerResponseCallback());
+
+        return true;
     }
 
     @Override
