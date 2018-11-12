@@ -8,33 +8,28 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+Linux
 
 ```
-Give examples
+sudo -u postgres -i
+systemctl start postgresql.service
 ```
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+Start server
 
 ```
-Give the example
+cd/server
+go run *.go
 ```
 
-And repeat
+Start client
 
 ```
-until finished
+cd/client
+./gradlew installDebug
 ```
-
-End with an example of getting some data out of the system or using it for a little demo
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
 
 ## Built With
 
