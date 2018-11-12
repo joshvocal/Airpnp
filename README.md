@@ -1,6 +1,6 @@
 # Airpnp
 
-Practice with writing backend
+Practice writing backend
 
 ## Getting Started
 
