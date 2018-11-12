@@ -5,6 +5,8 @@ import java.util.List;
 import joshvocal.me.client.api.model.Marker;
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.PUT;
+import retrofit2.http.Query;
 
 public interface MarkerClient {
 
@@ -12,4 +14,10 @@ public interface MarkerClient {
 
     @GET("markers")
     Call<List<Marker>> getMarkers();
+
+    @PUT("marker")
+    Call<Marker> putMarker(
+            @Query("lat") String lat,
+            @Query("lng") String lng
+    );
 }

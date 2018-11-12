@@ -47,6 +47,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ImageView mSearchBarSearchIcon;
     private RelativeLayout mSearchBar;
     private FloatingActionButton mLocationFab;
+    private FloatingActionButton mAddFab;
+    private ImageView mMarkerPlacementPreview;
+    private boolean mFlag = false;
 
     private FusedLocationProviderClient mFusedLocationProviderClient;
 
@@ -63,6 +66,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mSearchBarSearchIcon = findViewById(R.id.search_bar_search_icon);
         mLocationFab = findViewById(R.id.fab_location);
         mLocationFab.setOnClickListener(this);
+        mAddFab = findViewById(R.id.fab_add);
+        mAddFab.setOnClickListener(this);
+        mMarkerPlacementPreview = findViewById(R.id.marker_preview);
 
         setViewPaddingForTransparentStatusBar();
 
@@ -94,11 +100,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Location currentLocation = ((Location) task.getResult());
                     LatLng latLng = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
                     moveMapCamera(latLng, DEFAULT_ZOOM);
-
-                    MarkerOptions options = new MarkerOptions()
-                            .position(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()));
-                    mMap.addMarker(options);
-                    Log.d("pLS", "onComplete: " + latLng.toString());
                 }
             }
         });
@@ -110,7 +111,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.animateCamera(current);
     }
 
-    private void populateMarkWithMarkers() {
+    private void putMarkerOnMap(String lat, String lng) {
+
+        final Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl(MarkerClient.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create());
+
+        Retrofit retrofit = builder.build();
+
+        MarkerClient markerClient = retrofit.create(MarkerClient.class);
+        Call<Marker> markerCall = markerClient.putMarker(lat, lng);
+
+        markerCall.enqueue(new PutMarkerResponseCallBack());
+    }
+
+    private void populateMapWithMarkers() {
 
         final Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(MarkerClient.BASE_URL)
@@ -121,36 +136,54 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         MarkerClient markerClient = retrofit.create(MarkerClient.class);
         Call<List<Marker>> markerCall = markerClient.getMarkers();
 
-        markerCall.enqueue(new Callback<List<Marker>>() {
+        markerCall.enqueue(new PopulateMarkerResponseCallback());
+    }
 
-            @Override
-            public void onResponse(Call<List<Marker>> call, Response<List<Marker>> response) {
-                if (response.isSuccessful()) {
-                    List<Marker> markerList = response.body();
+    private class PutMarkerResponseCallBack implements Callback<Marker> {
 
-                    for (Marker marker : markerList) {
+        @Override
+        public void onResponse(Call<Marker> call, Response<Marker> response) {
+            if (response.isSuccessful()) {
+                Toast.makeText(MapsActivity.this, "Added to database", Toast.LENGTH_SHORT).show();
+            }
+        }
 
-                        Double lat = marker.getLat();
-                        Double lng = marker.getLng();
+        @Override
+        public void onFailure(Call<Marker> call, Throwable t) {
+            Toast.makeText(MapsActivity.this, "Fail", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-                        MarkerOptions options = new MarkerOptions()
-                                .position(new LatLng(lat, lng))
-                                .snippet(marker.toString());
+    private class PopulateMarkerResponseCallback implements Callback<List<Marker>> {
 
-                        mMap.addMarker(options);
+        @Override
+        public void onResponse(Call<List<Marker>> call, Response<List<Marker>> response) {
+            if (response.isSuccessful()) {
+                List<Marker> markerList = response.body();
 
-                        Log.d("YOLO", "onResponse: " + marker.toString());
-                    }
+                for (Marker marker : markerList) {
+
+                    Double lat = marker.getLat();
+                    Double lng = marker.getLng();
+
+                    MarkerOptions options = new MarkerOptions()
+                            .position(new LatLng(lat, lng))
+                            .snippet(marker.toString());
+
+                    mMap.addMarker(options);
+
+                    Log.d("YOLO", "onResponse: " + marker.toString());
                 }
-
-                Toast.makeText(MapsActivity.this, "Success", Toast.LENGTH_SHORT).show();
             }
 
-            @Override
-            public void onFailure(Call<List<Marker>> call, Throwable t) {
-                Toast.makeText(MapsActivity.this, "Fail", Toast.LENGTH_SHORT).show();
-            }
-        });
+            Toast.makeText(MapsActivity.this, "Success", Toast.LENGTH_SHORT).show();
+
+        }
+
+        @Override
+        public void onFailure(Call<List<Marker>> call, Throwable t) {
+            Toast.makeText(MapsActivity.this, "Fail", Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -181,6 +214,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
+        populateMapWithMarkers();
 
         mMap.setMyLocationEnabled(true);
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
@@ -216,7 +250,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         switch (view.getId()) {
             case R.id.fab_location:
                 getDeviceLocation();
-                populateMarkWithMarkers();
+                break;
+            case R.id.fab_add:
+                if (mFlag) {
+                    mFlag = false;
+
+                    LatLng center = mMap.getCameraPosition().target;
+                    mMarkerPlacementPreview.setVisibility(View.GONE);
+                    MarkerOptions options = new MarkerOptions()
+                            .position(center);
+                    mMap.addMarker(options);
+
+                    putMarkerOnMap(Double.toString(center.latitude), Double.toString(center.longitude));
+                } else {
+                    mFlag = true;
+
+                    mMarkerPlacementPreview.setVisibility(View.VISIBLE);
+                }
                 break;
             default:
                 break;
