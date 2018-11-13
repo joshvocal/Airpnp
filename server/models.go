@@ -13,7 +13,7 @@ type Marker struct {
 	Lng  float64 `json:"lng"`
 }
 
-var RenderDistanceMeters = 100.0
+var MaxRenderDistanceMeters = 5000.0
 
 func GetMarkers() ([]Marker, error) {
 	rows, err := DB.Query("SELECT * FROM marker")
@@ -49,6 +49,7 @@ func GetAllMarkersWithinDistance(req *http.Request) ([]Marker, error) {
 	markers := make([]Marker, 0)
 	latOrig := req.FormValue("lat")
 	lngOrig := req.FormValue("lng")
+	radiusParam := req.FormValue("radius")
 
 	// Check that lat and lng are able to parse into floats
 	var err error
@@ -63,6 +64,14 @@ func GetAllMarkersWithinDistance(req *http.Request) ([]Marker, error) {
 		fmt.Println(err)
 		return markers, err
 	}
+
+	fmt.Println(radiusParam)
+
+	radius, err := strconv.ParseFloat(radiusParam, 64)
+	if err != nil {
+		fmt.Println(err)
+		return markers, err
+	}
 	
 	allMarkers, err := GetMarkers()
 	if err != nil {
@@ -71,7 +80,7 @@ func GetAllMarkersWithinDistance(req *http.Request) ([]Marker, error) {
 	}
 	
 	for _, marker := range allMarkers {
-		if Distance(lat1, lng1, marker.Lat, marker.Lng) < RenderDistanceMeters {
+		if Distance(lat1, lng1, marker.Lat, marker.Lng) < MaxRenderDistanceMeters && radius < MaxRenderDistanceMeters {
 			markers = append(markers, marker)
 		} 
 	}

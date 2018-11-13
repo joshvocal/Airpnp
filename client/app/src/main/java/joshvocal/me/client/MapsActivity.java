@@ -32,6 +32,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
@@ -51,7 +52,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
         View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnInfoWindowClickListener,
-        GoogleMap.OnCameraMoveListener {
+        GoogleMap.OnCameraIdleListener {
 
     private static final float DEFAULT_ZOOM = 17f;
 
@@ -197,14 +198,51 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         MarkerClient markerClient = retrofit.create(MarkerClient.class);
         Call<List<Marker>> markerCall = markerClient.getAllMarkersWithinDistance(
-                String.valueOf(latLng.latitude), String.valueOf(latLng.longitude));
+                String.valueOf(latLng.latitude), String.valueOf(latLng.longitude),
+                String.valueOf(getMapCameraVisibleRegionRadius()));
 
         markerCall.enqueue(new PopulateMarkerResponseCallback());
     }
 
-    @Override
-    public void onCameraMove() {
+    private double getMapCameraVisibleRegionRadius() {
+        VisibleRegion visibleRegion = mMap.getProjection().getVisibleRegion();
 
+        float[] distanceWidth = new float[1];
+        float[] distanceHeight = new float[1];
+
+        LatLng farRight = visibleRegion.farRight;
+        LatLng farLeft = visibleRegion.farLeft;
+        LatLng nearRight = visibleRegion.nearRight;
+        LatLng nearLeft = visibleRegion.nearLeft;
+
+        Location.distanceBetween(
+                (farLeft.latitude + nearLeft.latitude) / 2,
+                farLeft.longitude,
+                (farRight.latitude + nearRight.latitude) / 2,
+                farRight.longitude,
+                distanceWidth
+        );
+
+        Location.distanceBetween(
+                farRight.latitude,
+                (farRight.longitude + farLeft.longitude) / 2,
+                nearRight.latitude,
+                (nearRight.longitude + nearLeft.longitude) / 2,
+                distanceHeight
+        );
+
+        double radiusInMeters =
+                Math.sqrt(Math.pow(distanceWidth[0], 2) + Math.pow(distanceHeight[0], 2)) / 2;
+
+        Log.d("Hello", "getMapCameraVisibleRegionRadius: " + String.valueOf(radiusInMeters));
+
+        return radiusInMeters;
+    }
+
+    @Override
+    public void onCameraIdle() {
+        populateMapWithMarkers(mMap.getCameraPosition().target);
+        Log.d("Hello", "IDLE: " + mMap.getCameraPosition().toString());
     }
 
     private class PutMarkerResponseCallback implements Callback<Marker> {
@@ -286,6 +324,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter(this));
         mMap.setOnMarkerClickListener(this);
         mMap.setOnInfoWindowClickListener(this);
+        mMap.setOnCameraIdleListener(this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED &&

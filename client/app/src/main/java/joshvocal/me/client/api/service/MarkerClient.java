@@ -19,7 +19,8 @@ public interface MarkerClient {
     @GET("markers/distance")
     Call<List<Marker>> getAllMarkersWithinDistance(
             @Query("lat") String lat,
-            @Query("lng") String lng
+            @Query("lng") String lng,
+            @Query("radius") String radius
     );
 
     @PUT("marker")
