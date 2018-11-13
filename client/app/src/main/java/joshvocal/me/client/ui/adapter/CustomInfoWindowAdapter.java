@@ -1,4 +1,4 @@
-package joshvocal.me.client.ui;
+package joshvocal.me.client.ui.adapter;
 
 import android.content.Context;
 import android.view.LayoutInflater;

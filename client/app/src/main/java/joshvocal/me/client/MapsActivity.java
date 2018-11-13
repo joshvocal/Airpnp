@@ -2,7 +2,6 @@ package joshvocal.me.client;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Build;
@@ -12,6 +11,9 @@ import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -29,7 +31,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -38,7 +39,8 @@ import java.util.List;
 
 import joshvocal.me.client.api.model.Marker;
 import joshvocal.me.client.api.service.MarkerClient;
-import joshvocal.me.client.ui.CustomInfoWindowAdapter;
+import joshvocal.me.client.ui.adapter.CustomInfoWindowAdapter;
+import joshvocal.me.client.ui.adapter.LocationAdapter;
 import joshvocal.me.client.util.SharedPreferencesHelper;
 import joshvocal.me.client.util.ViewUtil;
 import retrofit2.Call;
@@ -48,7 +50,8 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
-        View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnInfoWindowClickListener {
+        View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnInfoWindowClickListener,
+        GoogleMap.OnCameraMoveListener {
 
     private static final float DEFAULT_ZOOM = 17f;
 
@@ -63,8 +66,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private SharedPreferencesHelper mSharedPreferencesHelper;
 
-    LinearLayout mBottomSheet;
-    BottomSheetBehavior mBottomSheetBehavior;
+    private LinearLayout mBottomSheet;
+    private BottomSheetBehavior mBottomSheetBehavior;
+    private RecyclerView mLocationRecyclerView;
 
     private boolean mFlag = false;
 
@@ -83,6 +87,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mAddFab = findViewById(R.id.fab_add);
         mAddFab.setOnClickListener(this);
         mMarkerPlacementPreview = findViewById(R.id.marker_preview);
+        mLocationRecyclerView = findViewById(R.id.near_by_location_recycler_view);
+        mLocationRecyclerView.addItemDecoration(new DividerItemDecoration(this,
+                DividerItemDecoration.VERTICAL));
+        mLocationRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         setUpBottomSheet();
         setViewPaddingForTransparentStatusBar();
@@ -193,6 +201,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerCall.enqueue(new PopulateMarkerResponseCallback());
     }
 
+    @Override
+    public void onCameraMove() {
+
+    }
 
     private class PutMarkerResponseCallback implements Callback<Marker> {
 
@@ -245,10 +257,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     Log.d("YOLO", "onResponse: " + marker.toString());
                 }
+
+                mLocationRecyclerView.setAdapter(new LocationAdapter(getApplicationContext(), markerList, mMap));
             }
 
             Toast.makeText(MapsActivity.this, "Success", Toast.LENGTH_SHORT).show();
-
         }
 
         @Override
