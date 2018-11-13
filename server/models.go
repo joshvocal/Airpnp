@@ -42,6 +42,41 @@ func GetMarkers() ([]Marker, error) {
 	return markers, nil
 }
 
+func GetAllMarkersWithinDistance(req *http.Request) ([]Marker, error) {
+	// Get form values
+	markers := make([]Marker, 0)
+	latOrig := req.FormValue("lat")
+	lngOrig := req.FormValue("lng")
+
+	// Check that lat and lng are able to parse into floats
+	var err error
+	lat1, err := strconv.ParseFloat(latOrig, 64)
+	if err != nil {
+		fmt.Println(err)
+		return markers, err
+	}
+
+	lng1, err := strconv.ParseFloat(lngOrig, 64)
+	if err != nil {
+		fmt.Println(err)
+		return markers, err
+	}
+	
+	allMarkers, err := GetMarkers()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	
+	for _, marker := range allMarkers {
+		if Distance(lat1, lng1, marker.Lat, marker.Lng) < 50 {
+			markers = append(markers, marker)
+		} 
+	}
+	
+	return markers, nil
+}
+
 func PutMarker(req *http.Request) (Marker,  error) {
 
 	// Get form values

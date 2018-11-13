@@ -18,6 +18,18 @@ func ReadAllMarkers(res http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(res).Encode(markers)
 }
 
+func ReadAllMarkersWithinDistance(res http.ResponseWriter, req *http.Request) {
+	markers, err := GetAllMarkersWithinDistance(req)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(res, http.StatusText(400), http.StatusBadRequest)
+		return
+	}
+	
+	json.NewEncoder(res).Encode(markers)
+}
+
 func CreateMarker(res http.ResponseWriter, req *http.Request) {
 	marker, err := PutMarker(req)
 
