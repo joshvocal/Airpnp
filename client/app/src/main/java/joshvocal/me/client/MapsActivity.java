@@ -2,16 +2,22 @@ package joshvocal.me.client;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.graphics.Color;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -23,6 +29,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -31,6 +38,7 @@ import java.util.List;
 
 import joshvocal.me.client.api.model.Marker;
 import joshvocal.me.client.api.service.MarkerClient;
+import joshvocal.me.client.ui.CustomInfoWindowAdapter;
 import joshvocal.me.client.util.SharedPreferencesHelper;
 import joshvocal.me.client.util.ViewUtil;
 import retrofit2.Call;
@@ -39,7 +47,8 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener, GoogleMap.OnMarkerClickListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback,
+        View.OnClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnInfoWindowClickListener {
 
     private static final float DEFAULT_ZOOM = 17f;
 
@@ -50,11 +59,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private FloatingActionButton mLocationFab;
     private FloatingActionButton mAddFab;
     private ImageView mMarkerPlacementPreview;
-    private boolean mFlag = false;
 
     private FusedLocationProviderClient mFusedLocationProviderClient;
-
     private SharedPreferencesHelper mSharedPreferencesHelper;
+
+    LinearLayout mBottomSheet;
+    BottomSheetBehavior mBottomSheetBehavior;
+
+    private boolean mFlag = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +74,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
         mSharedPreferencesHelper = new SharedPreferencesHelper(this);
-
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         mSearchBar = findViewById(R.id.search_bar);
         mSearchBarCloseIcon = findViewById(R.id.search_bar_close_icon);
@@ -75,12 +84,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mAddFab.setOnClickListener(this);
         mMarkerPlacementPreview = findViewById(R.id.marker_preview);
 
+        setUpBottomSheet();
         setViewPaddingForTransparentStatusBar();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+    }
+
+    private void setUpBottomSheet() {
+        mBottomSheet = findViewById(R.id.bottom_sheet);
+        mBottomSheetBehavior = BottomSheetBehavior.from(mBottomSheet);
+
+        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+//        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+//        mBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+
+        mBottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            @Override
+            public void onStateChanged(@NonNull View bottomSheet, int newState) {
+
+                if (BottomSheetBehavior.STATE_DRAGGING == newState) {
+                    mAddFab.animate().scaleX(0).scaleY(0).setDuration(100).start();
+                    mLocationFab.animate().scaleX(0).scaleY(0).setDuration(100).start();
+                } else if (BottomSheetBehavior.STATE_COLLAPSED == newState) {
+                    mAddFab.animate().scaleX(1).scaleY(1).setDuration(100).start();
+                    mLocationFab.animate().scaleX(1).scaleY(1).setDuration(100).start();
+                }
+            }
+
+            @Override
+            public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+
+            }
+        });
     }
 
     private void getCurrentDeviceLocation() {
@@ -155,6 +193,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerCall.enqueue(new PopulateMarkerResponseCallback());
     }
 
+
     private class PutMarkerResponseCallback implements Callback<Marker> {
 
         @Override
@@ -199,6 +238,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     MarkerOptions options = new MarkerOptions()
                             .position(new LatLng(lat, lng))
+                            .title("Hello")
                             .snippet(marker.toString());
 
                     mMap.addMarker(options);
@@ -229,7 +269,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setInfoWindowAdapter(new CustomInfoWindowAdapter(this));
         mMap.setOnMarkerClickListener(this);
+        mMap.setOnInfoWindowClickListener(this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED &&
@@ -262,20 +304,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
+    public void onInfoWindowClick(com.google.android.gms.maps.model.Marker marker) {
+        Toast.makeText(this, marker.getPosition().toString(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
     public boolean onMarkerClick(com.google.android.gms.maps.model.Marker marker) {
 
-        final Retrofit.Builder builder = new Retrofit.Builder()
-                .baseUrl(MarkerClient.BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create());
+        if (marker.isInfoWindowShown()) {
+            marker.hideInfoWindow();
+        } else {
+            marker.showInfoWindow();
+        }
 
-        Retrofit retrofit = builder.build();
+        animateMapCamera(marker.getPosition(), DEFAULT_ZOOM);
 
-        MarkerClient markerClient = retrofit.create(MarkerClient.class);
-        Call<Void> markerCall = markerClient.deleteMarker(
-                String.valueOf(marker.getPosition().latitude),
-                String.valueOf(marker.getPosition().longitude));
-
-        markerCall.enqueue(new DeleteMarkerResponseCallback());
+//        final Retrofit.Builder builder = new Retrofit.Builder()
+//                .baseUrl(MarkerClient.BASE_URL)
+//                .addConverterFactory(GsonConverterFactory.create());
+//
+//        Retrofit retrofit = builder.build();
+//
+//        MarkerClient markerClient = retrofit.create(MarkerClient.class);
+//        Call<Void> markerCall = markerClient.deleteMarker(
+//                String.valueOf(marker.getPosition().latitude),
+//                String.valueOf(marker.getPosition().longitude));
+//
+//        markerCall.enqueue(new DeleteMarkerResponseCallback());
 
         return true;
     }
@@ -313,6 +368,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng center = mMap.getCameraPosition().target;
                     mMarkerPlacementPreview.setVisibility(View.GONE);
                     MarkerOptions options = new MarkerOptions()
+                            .title("Hello")
+                            .snippet("World")
                             .position(center);
                     mMap.addMarker(options);
 
@@ -337,5 +394,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mSharedPreferencesHelper.setLastLatPrefKey(latString);
         mSharedPreferencesHelper.setLastLngPrefKey(lngString);
+    }
+
+    private void transparentStatusAndNavigation() {
+        //make full transparent statusBar
+        if (Build.VERSION.SDK_INT >= 19 && Build.VERSION.SDK_INT < 21) {
+            setWindowFlag(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION, true);
+        }
+        if (Build.VERSION.SDK_INT >= 19) {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            );
+        }
+        if (Build.VERSION.SDK_INT >= 21) {
+            setWindowFlag(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION, false);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(Color.TRANSPARENT);
+        }
+    }
+
+    private void setWindowFlag(final int bits, boolean on) {
+        Window win = getWindow();
+        WindowManager.LayoutParams winParams = win.getAttributes();
+        if (on) {
+            winParams.flags |= bits;
+        } else {
+            winParams.flags &= ~bits;
+        }
+        win.setAttributes(winParams);
     }
 }
