@@ -16,6 +16,12 @@ public interface MarkerClient {
     @GET("markers")
     Call<List<Marker>> getMarkers();
 
+    @GET("markers/distance")
+    Call<List<Marker>> getAllMarkersWithinDistance(
+            @Query("lat") String lat,
+            @Query("lng") String lng
+    );
+
     @PUT("marker")
     Call<Marker> putMarker(
             @Query("lat") String lat,

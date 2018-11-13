@@ -13,6 +13,8 @@ type Marker struct {
 	Lng  float64 `json:"lng"`
 }
 
+var RenderDistanceMeters = 100.0
+
 func GetMarkers() ([]Marker, error) {
 	rows, err := DB.Query("SELECT * FROM marker")
 	if err != nil {
@@ -69,7 +71,7 @@ func GetAllMarkersWithinDistance(req *http.Request) ([]Marker, error) {
 	}
 	
 	for _, marker := range allMarkers {
-		if Distance(lat1, lng1, marker.Lat, marker.Lng) < 50 {
+		if Distance(lat1, lng1, marker.Lat, marker.Lng) < RenderDistanceMeters {
 			markers = append(markers, marker)
 		} 
 	}

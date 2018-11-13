@@ -187,7 +187,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         markerCall.enqueue(new PutMarkerResponseCallback());
     }
 
-    private void populateMapWithMarkers() {
+    private void populateMapWithMarkers(LatLng latLng) {
 
         final Retrofit.Builder builder = new Retrofit.Builder()
                 .baseUrl(MarkerClient.BASE_URL)
@@ -196,7 +196,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Retrofit retrofit = builder.build();
 
         MarkerClient markerClient = retrofit.create(MarkerClient.class);
-        Call<List<Marker>> markerCall = markerClient.getMarkers();
+        Call<List<Marker>> markerCall = markerClient.getAllMarkersWithinDistance(
+                String.valueOf(latLng.latitude), String.valueOf(latLng.longitude));
 
         markerCall.enqueue(new PopulateMarkerResponseCallback());
     }
@@ -307,9 +308,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.getUiSettings().setMapToolbarEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(false);
 
-        populateMapWithMarkers();
 
         if (getDeviceLastLocation() != new LatLng(0, 0)) {
+            populateMapWithMarkers(getDeviceLastLocation());
             moveMapCamera(getDeviceLastLocation(), DEFAULT_ZOOM);
         } else {
             getCurrentDeviceLocation();
