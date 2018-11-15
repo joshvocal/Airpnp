@@ -11,6 +11,7 @@ import android.support.design.widget.BottomSheetBehavior;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -42,6 +43,7 @@ import joshvocal.me.client.api.model.Marker;
 import joshvocal.me.client.api.service.MarkerClient;
 import joshvocal.me.client.ui.adapter.CustomInfoWindowAdapter;
 import joshvocal.me.client.ui.adapter.LocationAdapter;
+import joshvocal.me.client.util.DrawableUtil;
 import joshvocal.me.client.util.SharedPreferencesHelper;
 import joshvocal.me.client.util.ViewUtil;
 import retrofit2.Call;
@@ -290,6 +292,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     MarkerOptions options = new MarkerOptions()
                             .position(new LatLng(lat, lng))
                             .title("Hello")
+                            .icon(DrawableUtil.getMarkerIconFromDrawable(
+                                    ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_map_pin)))
                             .snippet(marker.toString());
 
                     mMap.addMarker(options);
@@ -423,6 +427,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     MarkerOptions options = new MarkerOptions()
                             .title("Hello")
                             .snippet("World")
+                            .icon(DrawableUtil.getMarkerIconFromDrawable(
+                                    ContextCompat.getDrawable(getApplicationContext(), R.drawable.ic_map_pin)))
                             .position(center);
                     mMap.addMarker(options);
 
